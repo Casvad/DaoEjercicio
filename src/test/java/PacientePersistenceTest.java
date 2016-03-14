@@ -14,15 +14,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 import edu.eci.pdsw.samples.entities.Consulta;
 import edu.eci.pdsw.samples.entities.Paciente;
 import edu.eci.pdsw.samples.persistence.DaoFactory;
+import edu.eci.pdsw.samples.persistence.DaoPaciente;
 import edu.eci.pdsw.samples.persistence.PersistenceException;
+import edu.eci.pdsw.samples.persistence.jdbcimpl.JDBCDaoPaciente;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Date;
+import java.util.LinkedHashSet;
 import java.util.Properties;
+import java.util.Set;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -32,16 +36,9 @@ import static org.junit.Assert.*;
  * @author hcadavid
  */
 public class PacientePersistenceTest {
-    
-    public PacientePersistenceTest() {
-    }
-    
-    @Before
-    public void setUp() {
-    }
-    
+  
     @Test
-    public void databaseConnectionTest() throws IOException, PersistenceException{
+    public void databaseConnectionTest1() throws IOException, PersistenceException{
         InputStream input = null;
         input = ClassLoader.getSystemResourceAsStream("applicationconfig_test.properties");
         Properties properties=new Properties();
@@ -51,12 +48,41 @@ public class PacientePersistenceTest {
         
         daof.beginSession();
         
+        
         //IMPLEMENTACION DE LAS PRUEBAS
-        fail("Pruebas no implementadas");
-
-
+        DaoPaciente bd=daof.getDaoPaciente();
+        Paciente p=new Paciente(12,"cc","carlos",java.sql.Date.valueOf("2000-01-01"));
+        Set<Consulta> consultas=new LinkedHashSet<>();
+        consultas.add(new Consulta(java.sql.Date.valueOf("2000-01-01"), "se esta agregando una nueva consulta"));
+        p.setConsultas(consultas);
+        bd.save(p);
+        Paciente aMirar=bd.load(12,"cc");
         daof.commitTransaction();
-        daof.endSession();        
+        daof.endSession(); 
+        Assert.assertEquals(aMirar,p);
+    }
+    
+    @Test
+    public void databaseConnectionTest2() throws IOException, PersistenceException{
+        InputStream input = null;
+        input = ClassLoader.getSystemResourceAsStream("applicationconfig_test.properties");
+        Properties properties=new Properties();
+        properties.load(input);
+        
+        DaoFactory daof=DaoFactory.getInstance(properties);
+        
+        daof.beginSession();
+        
+        
+        //IMPLEMENTACION DE LAS PRUEBAS
+        DaoPaciente bd=daof.getDaoPaciente();
+        Paciente p=new Paciente(12,"cc","carlos",java.sql.Date.valueOf("2000-01-01"));
+        bd.save(p);
+        Paciente aMirar=bd.load(12,"cc");
+        daof.commitTransaction();
+        daof.endSession(); 
+        Assert.assertEquals(aMirar,p);
+        
     }
     
     
