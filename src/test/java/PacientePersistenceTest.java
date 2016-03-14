@@ -38,7 +38,7 @@ import static org.junit.Assert.*;
 public class PacientePersistenceTest {
   
     @Test
-    public void databaseConnectionTest1() throws IOException, PersistenceException{
+    public void databaseConnectionTest3() throws IOException, PersistenceException{
         InputStream input = null;
         input = ClassLoader.getSystemResourceAsStream("applicationconfig_test.properties");
         Properties properties=new Properties();
@@ -85,5 +85,62 @@ public class PacientePersistenceTest {
         
     }
     
+    @Test
+    public void databaseConnectionTest1() throws IOException, PersistenceException{
+        InputStream input = null;
+        input = ClassLoader.getSystemResourceAsStream("applicationconfig_test.properties");
+        Properties properties=new Properties();
+        properties.load(input);
+        
+        DaoFactory daof=DaoFactory.getInstance(properties);
+        
+        daof.beginSession();
+        
+        
+        //IMPLEMENTACION DE LAS PRUEBAS
+        DaoPaciente bd=daof.getDaoPaciente();
+        Paciente p=new Paciente(12,"cc","carlos",java.sql.Date.valueOf("2000-01-01"));
+        Set<Consulta> consultas=new LinkedHashSet<>();
+        consultas.add(new Consulta(java.sql.Date.valueOf("2000-01-01"), "se esta agregando una nueva consulta"));
+        consultas.add(new Consulta(java.sql.Date.valueOf("2000-02-02"), "se esta agregando otra nueva consulta"));
+        consultas.add(new Consulta(java.sql.Date.valueOf("2000-02-04"), "se esta agregando otra otra nueva consulta"));
+        p.setConsultas(consultas);
+        bd.save(p);
+        Paciente aMirar=bd.load(12,"cc");
+        daof.commitTransaction();
+        daof.endSession(); 
+        Assert.assertEquals(aMirar,p);
+    }
+    
+     @Test
+    public void databaseConnectionTest4() throws IOException, PersistenceException{
+        InputStream input = null;
+        input = ClassLoader.getSystemResourceAsStream("applicationconfig_test.properties");
+        Properties properties=new Properties();
+        properties.load(input);
+        
+        DaoFactory daof=DaoFactory.getInstance(properties);
+        
+        daof.beginSession();
+        
+        
+        //IMPLEMENTACION DE LAS PRUEBAS
+        DaoPaciente bd=daof.getDaoPaciente();
+        Paciente p=new Paciente(12,"cc","carlos",java.sql.Date.valueOf("2000-01-01"));
+        Set<Consulta> consultas=new LinkedHashSet<>();
+        consultas.add(new Consulta(java.sql.Date.valueOf("2000-01-01"), "se esta agregando una nueva consulta"));
+        consultas.add(new Consulta(java.sql.Date.valueOf("2000-02-02"), "se esta agregando otra nueva consulta"));
+        consultas.add(new Consulta(java.sql.Date.valueOf("2000-02-04"), "se esta agregando otra otra nueva consulta"));
+        p.setConsultas(consultas);
+        bd.save(p);
+        try{
+        bd.save(p);
+        }catch(PersistenceException e){
+            daof.commitTransaction();
+            daof.endSession(); 
+            Assert.assertTrue(true);
+        }
+        fail("Se pudo registrar el paciente dos veces");
+    }
     
 }
