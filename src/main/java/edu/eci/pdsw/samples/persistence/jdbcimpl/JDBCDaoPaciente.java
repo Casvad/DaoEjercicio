@@ -27,6 +27,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -45,10 +47,10 @@ public class JDBCDaoPaciente implements DaoPaciente {
     public Paciente load(int idpaciente, String tipoid) throws PersistenceException {
         PreparedStatement ps;
         Paciente p;
+        LinkedHashSet<Consulta> consultas=new LinkedHashSet<Consulta>();
         try {
-            
-            String consulta="SELECT * FROM PACIENTES WHERE id=? and tipo_id=?";
-            ps=con.prepareStatement(consulta);
+            String consultaSugerida="select pac.nombre, pac.fecha_nacimiento, con.idCONSULTAS, con.fecha_y_hora, con.resumen from PACIENTES as pac left join CONSULTAS as con on con.PACIENTES_id=pac.id and con.PACIENTES_tipo_id=pac.tipo_id where pac.id=? and pac.tipo_id=?";
+            ps=con.prepareStatement(consultaSugerida);
             //Asignar parámetros
             ps.setInt(1,idpaciente);
             ps.setString(2,tipoid);
@@ -57,24 +59,18 @@ public class JDBCDaoPaciente implements DaoPaciente {
             //usar executeQuery
             ResultSet rs=ps.executeQuery();
             rs.next();
-            p=new Paciente(rs.getInt(1),rs.getString(2),rs.getString(3),rs.getDate(4));
-
+            p=new Paciente(idpaciente, tipoid,rs.getString(1), rs.getDate(2));
+            Consulta consulta;
+            if(!(rs.getDate(4)==null || rs.getString(5)==null)){
+                consulta=new Consulta(rs.getDate(4),rs.getString(5));
+                consulta.setId(rs.getInt(3));
+                consultas.add(consulta);
+            }
             //////Agregando consultas
-            PreparedStatement prep;
-            Set<Consulta> consultas=new LinkedHashSet<Consulta>();
-            
-            String consult="SELECT fecha_y_hora,resumen,idCONSULTAS FROM CONSULTAS WHERE PACIENTES_id=? and PACIENTES_tipo_id=?";
-            prep=con.prepareStatement(consult);
-            //Asignar parámetros
-            prep.setInt(1,idpaciente);
-            prep.setString(2,tipoid);
-            //usar executeQuery
-            
-            ResultSet r=prep.executeQuery();
-            while(r.next()){
-                Consulta cons=new Consulta(r.getDate(1),r.getString(2));
-                cons.setId(r.getInt(3));
-                consultas.add(cons);
+            while(rs.next()){
+                consulta=new Consulta(rs.getDate(4),rs.getString(5));
+                consulta.setId(rs.getInt(3));
+                consultas.add(consulta);
             }
             p.setConsultas(consultas);
         } catch (SQLException ex) {
@@ -84,42 +80,57 @@ public class JDBCDaoPaciente implements DaoPaciente {
     }
 
     @Override
-    public void save(Paciente p) throws PersistenceException {
-        PreparedStatement ps;
-        try {
-            
-            //Crear preparedStatement
-        PreparedStatement statement;
-        String consulta="INSERT INTO PACIENTES (id,tipo_id,nombre,fecha_nacimiento) values (?,?,?,?)" ;
-        statement=con.prepareStatement(consulta);
-        //Asignar parámetros
-        statement.setInt(1,p.getId());
-        statement.setString(2,p.getTipo_id());
-        statement.setString(3,p.getNombre());
-        statement.setDate(4, p.getFechaNacimiento());
-        //usar 'execute'
+    public void save(Paciente p) throws PersistenceException { 
+        String consultarC="SELECT * FROM PACIENTES WHERE id=? and tipo_id=?";
+        ResultSet r = null;
+        PreparedStatement prepared;
         
-        statement.execute();
-       
-        for (Consulta c:p.getConsultas()){
-            PreparedStatement agregarConsulta;
-            String cons="INSERT INTO CONSULTAS (idCONSULTAS,fecha_y_hora,resumen,PACIENTES_id,PACIENTES_tipo_id) "
-                    + "VALUES(?,?,?,?,?)";
-            agregarConsulta=con.prepareStatement(cons);
-            agregarConsulta.setInt(1, c.getId());
-            agregarConsulta.setDate(2, c.getFechayHora());
-            agregarConsulta.setString(3, c.getResumen());
-            agregarConsulta.setInt(4, p.getId());
-            agregarConsulta.setString(5, p.getTipo_id());
-            agregarConsulta.execute();
+        try {
+            prepared=con.prepareStatement(consultarC);
+            prepared.setInt(1, p.getId());
+            prepared.setString(2, p.getTipo_id());          
+            r=prepared.executeQuery();
+        } catch (SQLException ex) {
+            Logger.getLogger(JDBCDaoPaciente.class.getName()).log(Level.SEVERE, null, ex);
         }
+        try {
+        if(!r.next()){
             
+            
+            PreparedStatement ps;
+                //Crear preparedStatement
+            PreparedStatement statement;
+            String consulta="INSERT INTO PACIENTES (id,tipo_id,nombre,fecha_nacimiento) values (?,?,?,?)" ;
+            statement=con.prepareStatement(consulta);
+            //Asignar parámetros
+            statement.setInt(1,p.getId());
+            statement.setString(2,p.getTipo_id());
+            statement.setString(3,p.getNombre());
+            statement.setDate(4, p.getFechaNacimiento());
+            //usar 'execute'
+
+            statement.execute();
+
+            for (Consulta c:p.getConsultas()){
+                PreparedStatement agregarConsulta;
+                String cons="INSERT INTO CONSULTAS (idCONSULTAS,fecha_y_hora,resumen,PACIENTES_id,PACIENTES_tipo_id) "
+                        + "VALUES(?,?,?,?,?)";
+                agregarConsulta=con.prepareStatement(cons);
+                agregarConsulta.setInt(1, c.getId());
+                agregarConsulta.setDate(2, c.getFechayHora());
+                agregarConsulta.setString(3, c.getResumen());
+                agregarConsulta.setInt(4, p.getId());
+                agregarConsulta.setString(5, p.getTipo_id());
+                agregarConsulta.execute();
+            }
+        }
+        else{
+            
+            throw new PersistenceException("An error ocurred while saving a product.");
+        }
         } catch (SQLException ex) {
             throw new PersistenceException("An error ocurred while saving a product."+ex.getMessage(),ex);
         }
-        
-       
-
     }
 
     @Override

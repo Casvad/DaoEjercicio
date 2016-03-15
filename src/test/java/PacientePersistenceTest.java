@@ -82,7 +82,9 @@ public class PacientePersistenceTest {
         bd.save(p);
         Paciente aMirar=bd.load(13,"cc");
         daof.commitTransaction();
-        daof.endSession(); 
+        daof.endSession();
+        System.out.println(aMirar.toString());
+        System.out.println(p.toString());
         Assert.assertEquals(aMirar.toString(),p.toString());
         
     }
@@ -117,8 +119,7 @@ public class PacientePersistenceTest {
         Paciente aMirar=bd.load(1225,"cc");
         daof.commitTransaction();
         daof.endSession(); 
-        System.out.println(aMirar.toString());
-        System.out.println(p.toString());
+        
         Assert.assertEquals(aMirar.toString(),p.toString());
     }
     
@@ -148,17 +149,15 @@ public class PacientePersistenceTest {
         bd.save(p);
         try{
         bd.save(p);
-        bd.save(p);
-        bd.save(p);
-        bd.save(p);
-        bd.save(p);
-        bd.save(p);
+        fail("Se pudo registrar el paciente dos veces");
         }catch(PersistenceException e){
             daof.commitTransaction();
             daof.endSession(); 
             Assert.assertTrue(true);
         }
-        fail("Se pudo registrar el paciente dos veces");
+        
     }
+    
+    
     
 }
